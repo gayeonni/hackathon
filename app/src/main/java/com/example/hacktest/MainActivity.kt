@@ -1,57 +1,51 @@
 package com.example.hacktest
 
+import SandboxResponse
+import UrlRequest
 import android.os.Bundle
-import com.google.android.material.snackbar.Snackbar
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.navigation.findNavController
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.navigateUp
-import androidx.navigation.ui.setupActionBarWithNavController
-import android.view.Menu
-import android.view.MenuItem
-import com.example.hacktest.databinding.ActivityMainBinding
+import com.example.hacktest.R
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+
+
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var appBarConfiguration: AppBarConfiguration
-private lateinit var binding: ActivityMainBinding
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
 
-     binding = ActivityMainBinding.inflate(layoutInflater)
-     setContentView(binding.root)
+        // 버튼 클릭 이벤트 처리
+        val buttonSend = findViewById<Button>(R.id.buttonSend)
+        val editTextMessage = findViewById<EditText>(R.id.editTextMessage)
 
-        setSupportActionBar(binding.toolbar)
-
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
-        appBarConfiguration = AppBarConfiguration(navController.graph)
-        setupActionBarWithNavController(navController, appBarConfiguration)
-
-        binding.fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
-        }
-    }
-override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        return when(item.itemId) {
-            R.id.action_settings -> true
-            else -> super.onOptionsItemSelected(item)
+        buttonSend.setOnClickListener {
+            val url = editTextMessage.text.toString()
+            sendUrlToSandbox(url)
         }
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-    val navController = findNavController(R.id.nav_host_fragment_content_main)
-    return navController.navigateUp(appBarConfiguration)
-            || super.onSupportNavigateUp()
+    private fun sendUrlToSandbox(url: String) {
+        val apiService = ApiClient.apiService
+        val call = apiService.analyzeUrl(UrlRequest(url))
+        call.enqueue(object : Callback<SandboxResponse> {
+            override fun onResponse(call: Call<SandboxResponse>, response: Response<SandboxResponse>) {
+                if (response.isSuccessful) {
+                    val result = response.body()?.result
+                    Toast.makeText(this@MainActivity, "Analysis Result: $result", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(this@MainActivity, "Error: ${response.message()}", Toast.LENGTH_LONG).show()
+                }
+            }
+
+            override fun onFailure(call: Call<SandboxResponse>, t: Throwable) {
+                Toast.makeText(this@MainActivity, "Failed: ${t.message}", Toast.LENGTH_LONG).show()
+            }
+        })
     }
 }
